@@ -88,7 +88,7 @@ class ChatterboxTurboGenerate:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "text": ("STRING", {"multiline": True}),
+                "text": ("STRING", {"multiline": True, "tooltip": "Text to speak. Supports emotion tags at start:\n[dramatic] Breaking news!\n[sarcastic] Oh sure, that went well.\n[happy] [laugh] [whispering] [angry] and more."}),
                 "temperature": ("FLOAT", {"default": 0.8, "min": 0.05, "max": 5.0, "step": 0.05}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "repetition_penalty": ("FLOAT", {"default": 1.2, "min": 1.0, "max": 2.0, "step": 0.05}),
@@ -149,8 +149,8 @@ class ChatterboxTurboDialogue:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "script": ("STRING", {"multiline": True}),
-                "voice_map": ("STRING", {"default": "{}"}),
+                "script": ("STRING", {"multiline": True, "tooltip": "One line per speaker: Speaker: [emotion] text\nExample:\nMac: [dramatic] Breaking news!\nLuna: [surprised] Incredible!"}),
+                "voice_map": ("STRING", {"multiline": True, "default": "{}", "tooltip": "JSON mapping speaker names to voice WAV paths.\nExample:\n{\"Mac\": \"/path/to/Mac.wav\", \"Luna\": \"/path/to/Luna.wav\"}\n\nLeave {} for default voice (no cloning)."}),
                 "pause_s": ("FLOAT", {"default": 0.35, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "temperature": ("FLOAT", {"default": 0.8, "min": 0.05, "max": 5.0, "step": 0.05}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),

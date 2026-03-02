@@ -61,7 +61,9 @@ Mac: [sarcastic] Can you believe it?
 
 ## Emotion & Paralinguistic Tags
 
-ChatterBox Turbo supports 19 special tokens trained into the model. Place a tag at the start of a line to set the delivery style for that line.
+ChatterBox Turbo supports 19 special tokens trained into the model as `added_tokens` on top of the GPT-2 vocabulary (token IDs 50257–50275). The full list is defined in [`added_tokens.json`](https://huggingface.co/ResembleAI/chatterbox-turbo/blob/main/added_tokens.json) in the model repo. The upstream [ChatterBox README](https://github.com/resemble-ai/chatterbox?tab=readme-ov-file#chatterbox-turbo) mentions `[cough]`, `[laugh]`, `[chuckle]` as examples — the complete set of 19 is listed below.
+
+Place a tag at the start of a line to set the delivery style for that line.
 
 ### Emotion Tags (affect the entire delivery)
 
