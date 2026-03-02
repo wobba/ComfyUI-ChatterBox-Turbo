@@ -81,13 +81,13 @@ Restart ComfyUI after installation.
 
 ## Model Download
 
-The model (~700 MB) downloads automatically from [`ResembleAI/chatterbox-turbo`](https://huggingface.co/ResembleAI/chatterbox-turbo) on HuggingFace the first time either node runs. It is cached in the default HuggingFace hub cache directory:
+The model (~700 MB) downloads automatically from [`ResembleAI/chatterbox-turbo`](https://huggingface.co/ResembleAI/chatterbox-turbo) on HuggingFace the first time either node runs. Files are stored in the standard ComfyUI models directory:
 
 ```
-~/.cache/huggingface/hub/models--ResembleAI--chatterbox-turbo/
+ComfyUI/models/TTS/chatterbox-turbo/
 ```
 
-No manual download or placement in a ComfyUI `models/` subfolder is needed.
+The folder is registered with ComfyUI's `folder_paths` system and respects `extra_model_paths.yaml` overrides. No manual download needed.
 
 ## Runtime Patches
 
@@ -103,7 +103,7 @@ This node includes three compatibility patches applied at import time:
 
 - ComfyUI with CUDA GPU
 - Python 3.11+ (tested on 3.13)
-- Dependencies: `chatterbox-tts`, `soundfile`, `librosa`, `huggingface_hub`
+- Dependencies: `chatterbox-tts`, `soundfile`, `librosa`, `huggingface_hub`, `perth`
 - PyTorch, torchaudio, and numpy are expected from the ComfyUI environment
 
 ## License

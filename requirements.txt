@@ -2,3 +2,4 @@ chatterbox-tts
 soundfile
 librosa
 huggingface_hub
+perth

@@ -8,10 +8,20 @@ import time
 
 import numpy as np
 import torch
+import folder_paths
+
+# Register model folder with ComfyUI
+_MODEL_FOLDER = "TTS/chatterbox-turbo"
+_model_dir = os.path.join(folder_paths.models_dir, _MODEL_FOLDER)
+os.makedirs(_model_dir, exist_ok=True)
+folder_paths.add_model_folder_path("chatterbox-turbo", _model_dir)
 
 # Global model singleton
 _model = None
 _model_lock = threading.Lock()
+
+_REPO_ID = "ResembleAI/chatterbox-turbo"
+_ALLOW_PATTERNS = ["*.safetensors", "*.json", "*.txt", "*.pt", "*.model"]
 
 
 def _get_model():
@@ -27,11 +37,15 @@ def _get_model():
         from huggingface_hub import snapshot_download
         from chatterbox.tts_turbo import ChatterboxTurboTTS
 
-        print("[ChatterBox Turbo] Downloading/loading model...")
+        # Download to ComfyUI models dir (not HF cache)
+        print(f"[ChatterBox Turbo] Model dir: {_model_dir}")
         local_path = snapshot_download(
-            repo_id="ResembleAI/chatterbox-turbo",
+            repo_id=_REPO_ID,
             token=False,
-            allow_patterns=["*.safetensors", "*.json", "*.txt", "*.pt", "*.model"],
+            allow_patterns=_ALLOW_PATTERNS,
+            local_dir=_model_dir,
+            local_dir_use_symlinks=False,
+            resume_download=True,
         )
         _model = ChatterboxTurboTTS.from_local(local_path, device="cuda")
         print(f"[ChatterBox Turbo] Model loaded (SR={_model.sr})")
