@@ -11,14 +11,23 @@ import types
 
 
 def _patch_perth_watermarker():
-    """Mock the Perth watermarker module.
+    """Ensure Perth watermarker is importable.
 
-    Perth uses pkg_resources which was removed in Python 3.13.
-    The watermarker is not needed for generation — just pass audio through.
+    Perth uses pkg_resources which was removed in Python 3.13. If the real
+    Perth module loads successfully, we leave it alone (watermarking enabled).
+    If it fails (e.g. Python 3.13+), we install a no-op mock so chatterbox
+    can still import — audio will not be watermarked in that case.
     """
     if "perth" in sys.modules:
         return
 
+    try:
+        import perth  # noqa: F401 — test if real Perth works
+        return  # real Perth loaded fine, watermarking enabled
+    except Exception:
+        pass
+
+    # Real Perth failed — install no-op mock
     perth_mod = types.ModuleType("perth")
 
     class _DummyWM:
@@ -27,6 +36,7 @@ def _patch_perth_watermarker():
 
     perth_mod.PerthImplicitWatermarker = _DummyWM
     sys.modules["perth"] = perth_mod
+    print("[ChatterBox Turbo] Perth watermarker unavailable (Python 3.13+), watermarking disabled")
 
 
 def _patch_s3tokenizer_float32():
