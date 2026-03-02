@@ -1,11 +1,11 @@
 # ComfyUI-ChatterBox-Turbo
 
-ComfyUI custom nodes for [ChatterBox Turbo](https://github.com/resemble-ai/chatterbox) — a fast 350M-parameter text-to-speech model with paralinguistic emotion tag support.
+ComfyUI custom nodes for [ChatterBox Turbo](https://github.com/resemble-ai/chatterbox?tab=readme-ov-file#chatterbox-turbo) — a fast 350M-parameter text-to-speech model with paralinguistic emotion tag support by [Resemble AI](https://github.com/resemble-ai/chatterbox).
 
 ## Features
 
 - **Fast generation** — 1-step mel decoder, significantly faster than the original ChatterBox
-- **Emotion tags** — `[dramatic]`, `[sarcastic]`, `[happy]`, `[surprised]`, `[whispering]`, and more
+- **19 emotion/paralinguistic tags** — `[dramatic]`, `[sarcastic]`, `[happy]`, `[whispering]`, and more
 - **Voice cloning** — pass a short WAV reference to clone any voice
 - **Multi-speaker dialogue** — generate full conversations with automatic voice switching
 - **Auto model download** — model weights download automatically from HuggingFace on first use
@@ -54,14 +54,57 @@ Mac: [sarcastic] Can you believe it?
 **Voice map example:**
 ```json
 {
-  "Mac": "/root/ComfyUI/custom_nodes/TTS-Audio-Suite/voices_examples/Mac.wav",
-  "Luna": "/root/ComfyUI/custom_nodes/TTS-Audio-Suite/voices_examples/Luna.wav"
+  "Mac": "/path/to/Mac.wav",
+  "Luna": "/path/to/Luna.wav"
 }
 ```
 
-## Supported Emotion Tags
+## Emotion & Paralinguistic Tags
 
-`[angry]` `[fear]` `[happy]` `[surprised]` `[crying]` `[sarcastic]` `[dramatic]` `[whispering]` `[narration]` `[advertisement]` `[laugh]` `[chuckle]` `[gasp]` `[sigh]` `[groan]` `[sniff]` `[cough]` `[clear throat]` `[shush]`
+ChatterBox Turbo supports 19 special tokens trained into the model. Place a tag at the start of a line to set the delivery style for that line.
+
+### Emotion Tags (affect the entire delivery)
+
+| Tag | Best for | Example |
+|-----|----------|---------|
+| `[dramatic]` | Breaking news, reveals, cliffhangers | `[dramatic] This changes everything!` |
+| `[sarcastic]` | Irony, dry humor, deadpan delivery | `[sarcastic] Oh sure, that went perfectly.` |
+| `[happy]` | Upbeat, celebratory, good news | `[happy] We just hit a million subscribers!` |
+| `[surprised]` | Reactions, plot twists, disbelief | `[surprised] Wait, are you serious right now?` |
+| `[angry]` | Outrage, frustration, intensity | `[angry] This is completely unacceptable!` |
+| `[fear]` | Tension, warnings, alarm | `[fear] Something is very wrong here.` |
+| `[crying]` | Sadness, emotion, sympathy | `[crying] I cannot believe they are gone.` |
+| `[whispering]` | Secrets, asides, intimacy | `[whispering] Nobody is supposed to know this.` |
+| `[narration]` | Neutral storytelling, documentary tone | `[narration] The year was nineteen sixty nine.` |
+| `[advertisement]` | Sales pitch, promo, upbeat sell | `[advertisement] Try it free for thirty days!` |
+
+### Vocal Sound Effects (inject a specific sound)
+
+| Tag | Effect |
+|-----|--------|
+| `[laugh]` | Full laugh |
+| `[chuckle]` | Soft/brief laugh |
+| `[gasp]` | Sharp intake of breath |
+| `[sigh]` | Exhalation, weariness |
+| `[groan]` | Displeasure, frustration |
+| `[sniff]` | Nasal sound |
+| `[cough]` | Cough |
+| `[clear throat]` | Throat clearing |
+| `[shush]` | Shushing sound |
+
+### Tips for Script Writing
+
+- **One tag per line.** Place it at the start: `[dramatic] The verdict is in.`
+- **Emotion tags work best at sentence start.** Sound effects can go mid-sentence: `Well [chuckle] that was unexpected.`
+- **Don't overuse.** Not every line needs a tag — untagged lines get natural delivery from the voice reference.
+- **Match tag to content.** `[surprised]` on mundane text sounds odd. Use it for genuine reveals.
+- **Best tags for news/TikTok scripts:**
+  - `[dramatic]` — opening lines, breaking news, reveals
+  - `[surprised]` — reactions to the other speaker
+  - `[sarcastic]` — commentary, humor, disbelief
+  - `[happy]` — positive stories, celebrations
+  - `[narration]` — factual context, transitions
+  - `[laugh]` / `[chuckle]` — between speakers for natural feel
 
 ## Installation
 
@@ -105,6 +148,11 @@ This node includes three compatibility patches applied at import time:
 - Python 3.11+ (tested on 3.13)
 - Dependencies: `chatterbox-tts`, `soundfile`, `librosa`, `huggingface_hub`, `perth`
 - PyTorch, torchaudio, and numpy are expected from the ComfyUI environment
+
+## Credits
+
+- [Resemble AI](https://www.resemble.ai/) for the ChatterBox model
+- [ChatterBox GitHub](https://github.com/resemble-ai/chatterbox) — upstream model repository
 
 ## License
 
