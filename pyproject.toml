@@ -1,0 +1,13 @@
+[project]
+name = "comfyui-chatterbox-turbo"
+description = "ChatterBox Turbo TTS node for ComfyUI — fast 350M-param text-to-speech with emotion tags"
+version = "1.0.0"
+license = "MIT"
+
+[project.urls]
+Repository = "https://github.com/wobba/ComfyUI-ChatterBox-Turbo"
+
+[tool.comfy]
+PublisherId = "wobba"
+DisplayName = "ChatterBox Turbo TTS"
+Icon = ""
