@@ -47,61 +47,95 @@ def _patch_perth_watermarker():
 def _patch_s3tokenizer_float32():
     """Fix s3tokenizer STFT returning float64 on numpy 2.x.
 
-    Monkey-patches S3Tokenizer.forward() to cast magnitudes to float32
-    after the STFT operation.
+    Monkey-patches log_mel_spectrogram() on both the pip s3tokenizer and
+    chatterbox's bundled copy to cast magnitudes to float32 after STFT.
     """
+    patched = False
+
+    # Patch chatterbox's bundled s3tokenizer (the one actually used)
+    try:
+        from chatterbox.models.s3tokenizer import s3tokenizer as cb_s3_mod
+        _orig_mel = cb_s3_mod.S3Tokenizer.log_mel_spectrogram
+
+        def _patched_mel(self, audio, padding=0):
+            import torch
+            import torch.nn.functional as F
+            if not torch.is_tensor(audio):
+                audio = torch.from_numpy(audio)
+            audio = audio.to(self.device)
+            if padding > 0:
+                audio = F.pad(audio, (0, padding))
+            stft = torch.stft(
+                audio, self.n_fft, cb_s3_mod.S3_HOP,
+                window=self.window.to(self.device),
+                return_complex=True,
+            )
+            magnitudes = stft[..., :-1].abs().float() ** 2  # .float() before **2
+            mel_spec = self._mel_filters.to(self.device) @ magnitudes
+            log_spec = torch.clamp(mel_spec, min=1e-10).log10()
+            log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)
+            log_spec = (log_spec + 4.0) / 4.0
+            return log_spec
+
+        cb_s3_mod.S3Tokenizer.log_mel_spectrogram = _patched_mel
+        patched = True
+    except (ImportError, AttributeError) as e:
+        print(f"[ChatterBox Turbo] Could not patch chatterbox s3tokenizer: {e}")
+
+    # Also patch pip s3tokenizer if installed (belt and suspenders)
     try:
         import s3tokenizer
-    except ImportError:
-        return
+        _orig_fwd = s3tokenizer.S3Tokenizer.forward
 
-    import torch
-    _original_forward = s3tokenizer.S3Tokenizer.forward
+        def _patched_forward(self, wavs, wav_lens=None, **kwargs):
+            import torch
+            padding = self.n_fft // 2
+            wavs = torch.nn.functional.pad(wavs, (padding, padding), "reflect")
+            window = torch.hann_window(self.n_fft, device=wavs.device, dtype=wavs.dtype)
+            stft = torch.stft(wavs, self.n_fft, self.hop_length, self.n_fft,
+                              window=window, return_complex=True)
+            magnitudes = stft.abs().float()  # <-- ensure float32
+            mel_spec = self.mel_filters.to(magnitudes.device) @ magnitudes
+            log_spec = torch.clamp(mel_spec, min=1e-5).log()
+            log_spec = (log_spec + 4.0) / 4.0
+            codes = self.quantize(log_spec)
+            if wav_lens is not None:
+                token_lens = (wav_lens / self.hop_length).long()
+                return codes, token_lens
+            return codes
 
-    def _patched_forward(self, wavs, wav_lens=None, **kwargs):
-        import numpy as np
+        s3tokenizer.S3Tokenizer.forward = _patched_forward
+        patched = True
+    except (ImportError, AttributeError):
+        pass
 
-        # Run original STFT logic
-        padding = self.n_fft // 2
-        wavs = torch.nn.functional.pad(wavs, (padding, padding), "reflect")
-        window = torch.hann_window(self.n_fft, device=wavs.device, dtype=wavs.dtype)
-        stft = torch.stft(
-            wavs, self.n_fft, self.hop_length, self.n_fft,
-            window=window, return_complex=True,
-        )
-        magnitudes = stft.abs()
-        magnitudes = magnitudes.float()  # <-- THE FIX: ensure float32
-
-        mel_spec = self.mel_filters.to(magnitudes.device) @ magnitudes
-        log_spec = torch.clamp(mel_spec, min=1e-5).log()
-        log_spec = (log_spec + 4.0) / 4.0
-
-        # Quantize
-        codes = self.quantize(log_spec)
-        if wav_lens is not None:
-            token_lens = (wav_lens / self.hop_length).long()
-            return codes, token_lens
-        return codes
-
-    s3tokenizer.S3Tokenizer.forward = _patched_forward
+    if not patched:
+        print("[ChatterBox Turbo] WARNING: Could not patch s3tokenizer float32")
 
 
 def _patch_tts_turbo_float32():
-    """Fix ChatterboxTurboTTS.prepare_conditionals() for numpy 2.x.
+    """Fix float64 issues in chatterbox for numpy 2.x.
 
-    librosa.load() returns float64 arrays on numpy 2.x. The model
-    expects float32. Patch prepare_conditionals to cast audio to float32.
+    Patches:
+    1. librosa.load() wrapper to return float32 arrays
+    2. Voice encoder forward() to cast mel input to float32 before LSTM
     """
     try:
         from chatterbox.tts_turbo import ChatterboxTurboTTS
     except ImportError:
         return
 
+    # Guard against double-patching
+    if getattr(ChatterboxTurboTTS, '_float32_patched', False):
+        return
+    ChatterboxTurboTTS._float32_patched = True
+
     import numpy as np
+
+    # Patch 1: librosa.load wrapper in prepare_conditionals
     _original_prepare = ChatterboxTurboTTS.prepare_conditionals
 
     def _patched_prepare(self, audio_prompt_path, *args, **kwargs):
-        # Temporarily patch librosa.load to return float32
         import librosa
         _original_load = librosa.load
 
@@ -118,6 +152,19 @@ def _patch_tts_turbo_float32():
             librosa.load = _original_load
 
     ChatterboxTurboTTS.prepare_conditionals = _patched_prepare
+
+    # Patch 2: Voice encoder forward() — cast mels to float32 before LSTM
+    try:
+        from chatterbox.models.voice_encoder.voice_encoder import VoiceEncoder
+        _original_forward = VoiceEncoder.forward
+
+        def _patched_forward(self, mels):
+            mels = mels.float()  # ensure float32
+            return _original_forward(self, mels)
+
+        VoiceEncoder.forward = _patched_forward
+    except (ImportError, AttributeError) as e:
+        print(f"[ChatterBox Turbo] Could not patch VoiceEncoder: {e}")
 
 
 def apply_all_patches():
