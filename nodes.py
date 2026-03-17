@@ -37,6 +37,12 @@ def _get_model():
         from huggingface_hub import snapshot_download
         from chatterbox.tts_turbo import ChatterboxTurboTTS
 
+        # Apply float32 patches now that chatterbox is imported
+        # Required for chatterbox-tts 0.1.6 + Python 3.13 + numpy 2.x
+        from .patches import _patch_s3tokenizer_float32, _patch_tts_turbo_float32
+        _patch_s3tokenizer_float32()
+        _patch_tts_turbo_float32()
+
         # Download to ComfyUI models dir (not HF cache)
         print(f"[ChatterBox Turbo] Model dir: {_model_dir}")
         local_path = snapshot_download(

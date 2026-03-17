@@ -19,11 +19,16 @@ def _patch_perth_watermarker():
     can still import — audio will not be watermarked in that case.
     """
     if "perth" in sys.modules:
-        return
+        # Check if the loaded module actually has what chatterbox needs
+        existing = sys.modules["perth"]
+        if hasattr(existing, "PerthImplicitWatermarker"):
+            return
+        # Wrong perth package — fall through to install mock
 
     try:
         import perth  # noqa: F401 — test if real Perth works
-        return  # real Perth loaded fine, watermarking enabled
+        if hasattr(perth, "PerthImplicitWatermarker"):
+            return  # real Perth loaded fine, watermarking enabled
     except Exception:
         pass
 
